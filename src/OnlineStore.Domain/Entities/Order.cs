@@ -10,11 +10,12 @@ public class Order
 
     public List<CartItem> Items { get; private set; }
 
-    public decimal TotalPrice { get; private set; }
+    public OrderStatus Status { get; private set; }
 
     public DateTime CreatedAt { get; private set; }
 
-    public OrderStatus Status { get; private set; }
+    public decimal TotalPrice =>
+        Items.Sum(i => i.TotalPrice);
 
     public Order(
         Customer customer,
@@ -22,27 +23,13 @@ public class Order
     {
         if (customer == null)
         {
-            throw new ArgumentException(
-                "Customer is required");
+            throw new ArgumentNullException(nameof(customer));
         }
 
-        if (items == null || items.Count == 0)
+        if (items == null || !items.Any())
         {
             throw new ArgumentException(
-                "Order must contain items");
-        }
-
-        if (items.Any(i => i.Quantity <= 0))
-        {
-            throw new ArgumentException(
-                "Invalid quantity");
-        }
-
-        if (items.Any(i =>
-                i.Product.StockQuantity < i.Quantity))
-        {
-            throw new InvalidOperationException(
-                "Not enough stock");
+                "Order must contain items.");
         }
 
         Id = Guid.NewGuid();
@@ -51,19 +38,9 @@ public class Order
 
         Items = items;
 
-        TotalPrice = items.Sum(i => i.TotalPrice);
-
-        if (TotalPrice <= 0)
-        {
-            throw new ArgumentException(
-                "Invalid total price");
-        }
-
-        CreatedAt = DateTime.UtcNow;
-
         Status = OrderStatus.Pending;
 
-        ReduceProductStock();
+        CreatedAt = DateTime.UtcNow;
     }
 
     public void MarkAsPaid()
@@ -71,18 +48,24 @@ public class Order
         if (Status == OrderStatus.Cancelled)
         {
             throw new InvalidOperationException(
-                "Cancelled order cannot be paid");
+                "Cancelled order cannot be paid.");
+        }
+
+        if (Status != OrderStatus.Pending)
+        {
+            throw new InvalidOperationException(
+                "Only pending orders can be paid.");
         }
 
         Status = OrderStatus.Paid;
     }
 
-    public void Ship()
+    public void MarkAsShipped()
     {
         if (Status != OrderStatus.Paid)
         {
             throw new InvalidOperationException(
-                "Only paid order can be shipped");
+                "Only paid orders can be shipped.");
         }
 
         Status = OrderStatus.Shipped;
@@ -93,18 +76,9 @@ public class Order
         if (Status == OrderStatus.Shipped)
         {
             throw new InvalidOperationException(
-                "Shipped order cannot be cancelled");
+                "Shipped order cannot be cancelled.");
         }
 
         Status = OrderStatus.Cancelled;
-    }
-
-    private void ReduceProductStock()
-    {
-        foreach (var item in Items)
-        {
-            item.Product.ReduceStock(
-                item.Quantity);
-        }
     }
 }
