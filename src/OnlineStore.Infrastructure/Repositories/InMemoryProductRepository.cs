@@ -3,22 +3,55 @@ using OnlineStore.Domain.Interfaces;
 
 namespace OnlineStore.Infrastructure.Repositories;
 
-public class InMemoryProductRepository : IProductRepository
+public class InMemoryProductRepository
+    : IProductRepository
 {
-    private readonly List<Product> _products = new();
+    private readonly Dictionary<Guid, Product> _products;
 
-    public IEnumerable<Product> GetAll()
+    public InMemoryProductRepository(
+        IEnumerable<Product>? products = null)
     {
-        return _products;
+        _products = products?
+            .ToDictionary(p => p.Id)
+            ?? new Dictionary<Guid, Product>();
+    }
+
+    public IReadOnlyCollection<Product> GetAll()
+    {
+        return _products.Values.ToList();
     }
 
     public Product? GetById(Guid id)
     {
-        return _products.FirstOrDefault(p => p.Id == id);
+        _products.TryGetValue(id, out var product);
+
+        return product;
     }
 
-    public void Save(Product product)
+    public void Add(Product entity)
     {
-        _products.Add(product);
+        if (_products.ContainsKey(entity.Id))
+            throw new InvalidOperationException(
+                "Product already exists");
+
+        _products[entity.Id] = entity;
+    }
+
+    public void Update(Product entity)
+    {
+        if (!_products.ContainsKey(entity.Id))
+            throw new InvalidOperationException(
+                "Product not found");
+
+        _products[entity.Id] = entity;
+    }
+
+    public void Delete(Guid id)
+    {
+        if (!_products.ContainsKey(id))
+            throw new InvalidOperationException(
+                "Product not found");
+
+        _products.Remove(id);
     }
 }
