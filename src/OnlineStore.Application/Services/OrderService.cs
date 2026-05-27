@@ -60,7 +60,7 @@ public class OrderService
                 "Order not found");
         }
 
-        order.Ship();
+        order.MarkAsShipped();
 
         _orderRepository.Update(order);
     }
