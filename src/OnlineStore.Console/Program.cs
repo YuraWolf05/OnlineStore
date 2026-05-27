@@ -1,94 +1,140 @@
 ﻿using OnlineStore.Application.Services;
+using OnlineStore.Domain.Entities;
 using OnlineStore.Domain.Enums;
+using OnlineStore.Infrastructure.Data;
 using OnlineStore.Infrastructure.Repositories;
 
-var repository = new InMemoryProductRepository();
+// LOAD DATA
+var dataStore = new JsonProductDataStore();
+var productsFromFile = await dataStore.LoadAsync();
 
-var productService = new ProductService(repository);
+var productRepository =
+    new InMemoryProductRepository(productsFromFile);
+
+var productService =
+    new ProductService(productRepository);
+
+var orderRepository =
+    new InMemoryOrderRepository();
+var orderService =
+    new OrderService(orderRepository);
+
+var cart = new Cart();
 
 while (true)
 {
-    Console.WriteLine("\n=== ONLINE STORE ===");
-
+    Console.WriteLine("\n=== ONLINE STORE (LAB 35) ===");
     Console.WriteLine("1. Add product");
-
     Console.WriteLine("2. Show products");
-
+    Console.WriteLine("3. Add to cart");
+    Console.WriteLine("4. Checkout order");
+    Console.WriteLine("5. Show orders");
+    Console.WriteLine("6. Analytics");
     Console.WriteLine("0. Exit");
-
-    Console.Write("Choose option: ");
 
     var input = Console.ReadLine();
 
     switch (input)
     {
         case "1":
+        {
+            Console.Write("Name: ");
+            var name = Console.ReadLine();
 
-            try
-            {
-                Console.Write("Product name: ");
-                var name = Console.ReadLine();
+            Console.Write("Price: ");
+            var price = decimal.Parse(Console.ReadLine()!);
 
-                Console.Write("Price: ");
-                var price = decimal.Parse(Console.ReadLine()!);
+            Console.Write("Stock: ");
+            var stock = int.Parse(Console.ReadLine()!);
 
-                Console.WriteLine("Category:");
-                Console.WriteLine("0 - Electronics");
-                Console.WriteLine("1 - Clothing");
-                Console.WriteLine("2 - Books");
-                Console.WriteLine("3 - Food");
-                Console.WriteLine("4 - Accessories");
+            var product = new Product(
+                name!,
+                price,
+                ProductCategory.Electronics,
+                stock);
 
-                var category =
-                    (ProductCategory)int.Parse(Console.ReadLine()!);
+            productService.CreateProduct(
+                product.Name,
+                product.Price,
+                product.Category,
+                product.StockQuantity);
 
-                Console.Write("Stock quantity: ");
+            await dataStore.SaveAsync(productRepository.GetAll());
 
-                var stock =
-                    int.Parse(Console.ReadLine()!);
-
-                productService.CreateProduct(
-                    name!,
-                    price,
-                    category,
-                    stock);
-
-                Console.WriteLine("Product added successfully");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error: {ex.Message}");
-            }
-
+            Console.WriteLine("Product created");
             break;
+        }
 
         case "2":
-
-            var products =
-                productService.GetProducts().ToList();
-
-            if (!products.Any())
+        {
+            foreach (var p in productService.GetProducts())
             {
-                Console.WriteLine("No products found");
+                Console.WriteLine($"{p.Name} | {p.Price} | {p.StockQuantity}");
+            }
+            break;
+        }
+
+        case "3":
+        {
+            Console.Write("Product name: ");
+            var name = Console.ReadLine();
+
+            var product = productService
+                .GetProducts()
+                .FirstOrDefault(p => p.Name == name);
+
+            if (product == null)
+            {
+                Console.WriteLine("Not found");
                 break;
             }
 
-            foreach (var product in products)
+            Console.Write("Quantity: ");
+            var qty = int.Parse(Console.ReadLine()!);
+
+            cart.AddProduct(product, qty);
+
+            Console.WriteLine("Added to cart");
+            break;
+        }
+
+        case "4":
+        {
+            var customer = new Customer(
+                "Test User",
+                "test@mail.com");
+
+            var order = orderService.CreateOrder(customer, cart);
+
+            order.MarkAsPaid();
+
+            Console.WriteLine($"Order created: {order.Id}");
+
+            break;
+        }
+
+        case "5":
+        {
+            var orders = orderService.GetOrders();
+
+            foreach (var o in orders)
             {
-                Console.WriteLine(
-                    $"{product.Name} | " +
-                    $"{product.Price:C} | " +
-                    $"{product.Category} | " +
-                    $"Stock: {product.StockQuantity}");
+                Console.WriteLine($"{o.Id} | {o.TotalPrice} | {o.Status}");
             }
 
             break;
+        }
+
+        case "6":
+        {
+            var orders = orderService.GetOrders();
+
+            Console.WriteLine($"Total revenue: {orders.Sum(o => o.TotalPrice)}");
+
+            break;
+        }
 
         case "0":
             return;
-
-        default:
-            Console.WriteLine("Invalid option");
-            break;
     }
 }

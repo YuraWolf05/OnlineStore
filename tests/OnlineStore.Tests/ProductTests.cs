@@ -6,40 +6,29 @@ namespace OnlineStore.Tests;
 public class ProductTests
 {
     [Fact]
-    public void Constructor_Should_Create_Product()
+    public void Product_Should_Be_Created_Correctly()
     {
-        var product = new Product(
-            "Laptop",
-            50000,
-            ProductCategory.Electronics,
-            10);
+        var p = new Product("Phone", 1000, ProductCategory.Electronics, 10);
 
-        Assert.Equal("Laptop", product.Name);
+        Assert.Equal("Phone", p.Name);
+        Assert.Equal(1000, p.Price);
     }
 
     [Fact]
-    public void Constructor_Should_Throw_For_Invalid_Name()
+    public void Should_Throw_When_Name_Is_Invalid()
     {
         Assert.Throws<ArgumentException>(() =>
         {
-            new Product(
-                "",
-                50000,
-                ProductCategory.Electronics,
-                10);
+            new Product("", 1000, ProductCategory.Electronics, 10);
         });
     }
 
     [Fact]
-    public void Constructor_Should_Throw_For_Invalid_Price()
+    public void Should_Throw_When_Price_Is_Invalid()
     {
         Assert.Throws<ArgumentException>(() =>
         {
-            new Product(
-                "Laptop",
-                0,
-                ProductCategory.Electronics,
-                10);
+            new Product("Phone", 0, ProductCategory.Electronics, 10);
         });
     }
 }

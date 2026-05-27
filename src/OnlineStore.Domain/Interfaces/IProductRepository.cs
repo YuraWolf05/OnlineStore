@@ -3,10 +3,6 @@ using OnlineStore.Domain.Entities;
 namespace OnlineStore.Domain.Interfaces;
 
 public interface IProductRepository
+    : IRepository<Product, Guid>
 {
-    IEnumerable<Product> GetAll();
-
-    Product? GetById(Guid id);
-
-    void Save(Product product);
 }

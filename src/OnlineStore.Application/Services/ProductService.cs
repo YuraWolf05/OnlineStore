@@ -25,7 +25,7 @@ public class ProductService
             category,
             stock);
 
-        _repository.Save(product);
+        _repository.Add(product);
     }
 
     public IEnumerable<Product> GetProducts()
